@@ -10,6 +10,11 @@
     <servlet-name>AutoComplete</servlet-name>
     <servlet-class>AutoComplete</servlet-class>
   </servlet>
+  <servlet>
+    <display-name>clickUrl</display-name>
+    <servlet-name>clickUrl</servlet-name>
+    <servlet-class>clickUrl</servlet-class>
+  </servlet>
   <servlet-mapping>
     <servlet-name>Server</servlet-name>
     <url-pattern>/servlet/Server</url-pattern>
@@ -17,5 +22,9 @@
   <servlet-mapping>
     <servlet-name>AutoComplete</servlet-name>
     <url-pattern>/servlet/AutoComplete</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>clickUrl</servlet-name>
+    <url-pattern>/servlet/clickUrl</url-pattern>
   </servlet-mapping>
 </web-app>
