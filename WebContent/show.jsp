@@ -31,7 +31,7 @@ String [] autocomplete = (String[]) request.getAttribute("autocomplete");
     	window.onload = function() {
     		 $('.titleHref').bind('click', 
     					function() {
-    				clickUrl($(this).context.baseURI);
+    				clickUrl($(this).context.href);
     			});
     	};
     	

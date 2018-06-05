@@ -26,7 +26,7 @@ function autocomplete(queryString) {
 function clickUrl(url) {
 	console.log(url)
 	$.ajax({
-		url: "servlet/clickUrl",
+		url: "clickUrl",
 		type: "Get",
 		dataType: 'text',
         async: true,

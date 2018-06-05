@@ -78,7 +78,7 @@ public class Server extends HttpServlet {
 			
 			
 			
-			System.out.println(queryString);
+			System.out.println(queryString+4);
 			request.setAttribute("currentPage", currentPage);
 			request.setAttribute("currentQuery", queryString);
 			request.setAttribute("pageNum", pageNum);
@@ -88,6 +88,7 @@ public class Server extends HttpServlet {
 			request.setAttribute("paths", paths);
 			request.setAttribute("titles", titles);
 			request.setAttribute("descriptions", descriptions);
+			request.setAttribute("suggestions", descriptions);
 			
 			request.getRequestDispatcher("//show.jsp").forward(request,
 					response);

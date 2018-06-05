@@ -10,7 +10,6 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Servlet implementation class clickUrl
  */
-@WebServlet("/clickUrl")
 public class clickUrl extends HttpServlet {
 	private static final long serialVersionUID = 1L;
        
@@ -30,7 +29,7 @@ public class clickUrl extends HttpServlet {
 		response.setContentType("text/html;charset=utf-8");
 		request.setCharacterEncoding("utf-8");
 		String url=request.getParameter("clickurl");
-		response.getWriter().append("Served at: ").append(request.getContextPath());
+		System.out.println(url);
 	}
 
 	/**
