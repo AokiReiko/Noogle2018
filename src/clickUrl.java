@@ -1,5 +1,3 @@
-
-
 import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -10,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Servlet implementation class clickUrl
  */
+@WebServlet("/clickUrl")
 public class clickUrl extends HttpServlet {
 	private static final long serialVersionUID = 1L;
        
@@ -28,8 +27,9 @@ public class clickUrl extends HttpServlet {
 		// TODO Auto-generated method stub
 		response.setContentType("text/html;charset=utf-8");
 		request.setCharacterEncoding("utf-8");
-		String url=request.getParameter("clickurl");
+		String url = request.getParameter("clickurl");
 		System.out.println(url);
+		
 	}
 
 	/**

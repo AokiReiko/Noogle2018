@@ -1,0 +1,48 @@
+@CHARSET "UTF-8";
+#searchForm {
+	margin-top: 0px;
+}
+#inputDiv {
+	padding-left:50px;   
+}
+.autocomp {
+	width:428px;
+	z-index:999;
+	padding-left:50px;   
+	float:left;
+}
+#queryInput {
+	float:left;
+	width: 428px;
+    padding-top: 5px;
+    padding-right: 9px;
+    padding-bottom: 5px;
+    padding-left: 16px;
+    font: 14px arial,sans-serif;
+    line-height: 36px;
+    height: 39px !important;
+    letter-spacing: normal;
+    word-spacing: normal;
+    display: inline-block;
+    text-align: start;
+}
+#buttonDiv {
+	float:left;
+	width:105px;
+	height:44px;
+    border-radius: 0px;
+}
+#buttonInput {
+	width:105px;
+	height:44px;
+    border-radius: 0px;
+    background: #3385ff;
+    font-size: 16px;
+}
+.btn {
+	margin-left: 10px;
+}
+#searchForm{
+	height: 44px;
+    width: 632px;
+}

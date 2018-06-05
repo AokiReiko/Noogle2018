@@ -1,239 +1,197 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.nio.file.Paths;
+import java.io.*;
+import java.util.HashMap;
 
+import org.jsoup.Jsoup;
+import org.wltea.analyzer.lucene.IKAnalyzer;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FloatDocValuesField;
+import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
-import org.apache.pdfbox.io.RandomAccessFile;
+import org.apache.pdfbox.cos.COSDocument;
+import org.apache.pdfbox.io.RandomAccessRead;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
-import org.apache.poi.POIXMLDocument;
+import org.apache.pdfbox.util.PDFTextStripper;
+import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
-import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.jsoup.Jsoup;
-import org.jsoup.select.Elements;
-import org.wltea.analyzer.lucene.IKAnalyzer;
+
 
 public class Indexer {
-
-	private static final String ROOT_DIR = "/Users/aokireiko/Downloads/thunews/20180518071328/mirror/news.tsinghua.edu.cn";
-	private static final String PAGERANK_FILE = "/Users/aokireiko/study/18_spring/搜索引擎技术/search_engine/rank.txt";
-	private static final String INDEX_DIR = "forIndex/index";
-	private Analyzer analyzer;
+	// TODO:hard code
+	static final String INDEX_FILE_NAME = "forIndex/index";
+	static final String PAGE_ROOT_DIR = "D:/tsinghua/20180518172144/mirror/news.tsinghua.edu.cn";
+	static final String PAGE_RANK_FILE = "rank.txt";	
+	
+	private Analyzer analyzer; 
     private IndexWriter indexWriter;
-    private float titleAvgLength = 1.0f;
-    private float contentAvgLength = 1.0f;
-    private int count = 0;
-	public Indexer() {
-		IKAnalyzer analyzer = new IKAnalyzer();
-        try {
-        	IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_40,
-                    analyzer);
-            Directory dir = FSDirectory.open(new File(INDEX_DIR));
-            indexWriter = new IndexWriter(dir, iwc);
-            // indexWriter.setSimilarity(new BM25Similarity());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-	}
-	public void saveGlobals(String filename) {
-        try {
-        	
-            PrintWriter pw = new PrintWriter(new File(filename));
-            pw.println(titleAvgLength);
-            pw.println(contentAvgLength);
-            pw.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    HashMap<String, Float> pageRank = new HashMap<String, Float>();
+    private int cnt = 0;
+    
+    public Indexer(String indexDir){
+    	analyzer = new IKAnalyzer();
+    	try{
+    		IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_40, analyzer);
+    		Directory dir = FSDirectory.open(new File(indexDir));
+    		indexWriter = new IndexWriter(dir,iwc);
+    		
+    		System.out.println("Load in pagerank");
+    		BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(PAGE_RANK_FILE)));
+	        for (String line = br.readLine(); line != null; line = br.readLine()) 
+	        {
+	        	String url = line.substring(0, line.indexOf(' '));
+	        	String pagerank = line.substring(line.indexOf(' ')+1);
+	        	float pr = Float.parseFloat(pagerank);
+	        	pageRank.put(url, pr);
+//	        	System.out.println(url + ", " + pr);
+	        }
+	        br.close();
+	        
+    	}catch(IOException e){
+    		e.printStackTrace();
+    	}
     }
-	public void parseHtml(File file, Document doc) {
-		try {
-			org.jsoup.nodes.Document jsoupDoc  = Jsoup.parse(file,"UTF-8","http://www.oschina.net/");
-			String title = jsoupDoc.select("title").text();
-			String content = jsoupDoc.select("article").select("p,h1,h2,strong").text();
-			Elements elements = jsoupDoc.select("meta[name=keywords]");
-			
-			Field titleField = new TextField("title", title, Field.Store.YES);
-			Field contentField = new TextField("content", content, Field.Store.YES);
-				
-			doc.add(titleField);
-			doc.add(contentField);
-			String keywords = "";
-			if (elements.size() > 0) {
-				keywords = jsoupDoc.select("meta[name=keywords]").get(0).attr("content");
-			}
-			Field keyField = new TextField("keywords", keywords, Field.Store.YES);
-			doc.add(keyField);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			System.out.println("Miss "+file.getAbsolutePath());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-	}
-	public void parsePdf(File file, Document doc) {
-		try {
-			
-			PDFParser parser = new PDFParser(new RandomAccessFile(file, "r"));
-			parser.parse();
-			PDDocument pd = parser.getPDDocument();
-			PDFTextStripper tStripper = new PDFTextStripper();
-			String content = tStripper.getText(pd);
-			String title = file.getName();
-			pd.close();
-			
-			Field titleField = new TextField("title", title, Field.Store.YES);
-			Field contentField = new TextField("content", content, Field.Store.YES); 
-			
-			doc.add(titleField);
-			doc.add(contentField);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			System.out.println("Miss "+file.getAbsolutePath());
-		}catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
-	}
-	public void parseDoc(File file, Document doc) {
-		try {
-			WordExtractor extractor = new WordExtractor(new FileInputStream(file));
-			String content = extractor.getText();
-			extractor.close();
-			String title = file.getName();
-			
-			Field titleField = new TextField("title", title, Field.Store.YES);
-			Field contentField = new TextField("content", content, Field.Store.YES); 
-			
-			doc.add(titleField);
-			doc.add(contentField);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			System.out.println("Miss "+file.getAbsolutePath());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
-	public void parseDocx(File file, Document doc) {
-		try {
-			XWPFWordExtractor docx = new XWPFWordExtractor(
-					new XWPFDocument(POIXMLDocument.openPackage(file.getAbsolutePath())));
-	        String content = docx.getText();
-	        docx.close();
-			String title = file.getName();
-			
-			Field titleField = new TextField("title", title, Field.Store.YES);
-			Field contentField = new TextField("content", content, Field.Store.YES); 
-			
-			doc.add(titleField);
-			doc.add(contentField);
-	        
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			System.out.println("Miss "+file.getAbsolutePath());
-		} catch (Exception e) {
-			// TODO: handle exception
-			e.printStackTrace();
-		}
-		
-        
-	}
-	public void build_index() {
-		try {
-			InputStreamReader read = new InputStreamReader(
-	                new FileInputStream(new File(PAGERANK_FILE)), "utf8");// 考虑到编码格式
-	        BufferedReader bufferedReader = new BufferedReader(read);
-	        String lineTxt = null;
-	        while ((lineTxt = bufferedReader.readLine()) != null)
-            {
-	        	String[] items = lineTxt.split(" ");
-	        	String name = items[0];
-	        	float rank = Float.parseFloat(items[1]);
-	        	File page;
-	        	try {
-					page = new File(ROOT_DIR+name);
-				} catch (Exception e) {
-					// TODO: handle exception
-					System.out.println("Index find no file "+name);
-					continue;
+    
+    public String readPdf(File file)
+	{
+		PDFTextStripper pdfStripper = null;
+	    PDDocument pdDoc = null;
+	    COSDocument cosDoc = null;
+	    String parsedText = null;
+	    try {
+	        PDFParser parser = new PDFParser(new FileInputStream(file));
+	        parser.parse();
+	        cosDoc = parser.getDocument();
+	        pdfStripper = new PDFTextStripper();
+	        pdDoc = new PDDocument(cosDoc);
+	        pdfStripper.setStartPage(1);
+	        pdfStripper.setEndPage(pdDoc.getNumberOfPages());
+	        parsedText = pdfStripper.getText(pdDoc);
+	        pdDoc.close();
+	        cosDoc.close();
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	        } 
+	    return parsedText;
+    }
+    
+	public void indexDocs(File file){
+		try{
+			if(file.canRead()){
+				if(file.isDirectory()){
+					String[] files = file.list();
+					if(files != null){
+						for (int i = 0; i < files.length; i++){
+							indexDocs(new File(file, files[i]));
+						}
+					}
+				} else {
+					FileInputStream fis;
+					try{
+						fis = new FileInputStream(file);
+					} catch (FileNotFoundException fnfe) {
+						return;
+					}
+					try{     
+						if(file.getName().endsWith("html")) { 
+							org.jsoup.nodes.Document docc = Jsoup.parse(file, "UTF-8","");
+							Document document = new Document();
+							StringField pathField = new StringField("path", file.getPath(), Field.Store.YES);
+							Field titleField = new TextField("title", docc.select("title").text(), Field.Store.YES);
+							Field keywordField = new TextField("keyword", docc.select("h1,h2,h3,h4,h5,h6,b,strong").text(), Field.Store.YES);
+							Field contentField  = new TextField( "content" ,docc.select("p").text(), Field.Store.YES);
+							Field linkField = new TextField("link", docc.select("a").text(), Field.Store.YES);
+							
+							String relative_path = file.getPath().replace(PAGE_ROOT_DIR, "").replace('\\', '/');
+//							System.out.println(relative_path);
+							//multiply all fields to get a document boost
+							try{
+								float pr = pageRank.get(relative_path);
+								pr = (float) (16 + Math.log(pr));
+								titleField.setBoost(pr);
+								keywordField.setBoost(pr);
+								contentField.setBoost(pr);
+								linkField.setBoost(pr);
+							} catch(Exception e)  {
+								System.out.println("no page rank for:"+relative_path);
+								e.printStackTrace();
+							}
+							document.add(pathField);
+							document.add(titleField);
+							document.add(keywordField);
+							document.add(contentField);
+							document.add(linkField);
+							indexWriter.addDocument(document);
+							cnt += 1;
+							if(cnt % 100 == 0)
+								System.out.println(cnt);				
+						} else if(file.getName().endsWith("pdf") | file.getName().endsWith("doc")){
+							String text = null;
+							try{
+								if(file.getName().endsWith("pdf"))
+									text = readPdf(file);
+								else if(file.getName().endsWith("doc")){
+									HWPFDocument docx = new HWPFDocument( new FileInputStream(file));
+									WordExtractor we = new WordExtractor(docx);
+									text = we.getText();
+									we.close(); 
+								}
+								Document document = new Document();
+								Field pathField = new StringField("path", file.getPath(), Field.Store.YES);
+								Field titleField = new TextField("title", file.getName(), Field.Store.YES);
+								Field keywordField = new TextField("keyword", "", Field.Store.YES);
+								Field contentField  = new TextField( "content" , text, Field.Store.YES);
+								Field linkField = new TextField("link", "", Field.Store.YES);
+								
+								float pr = 0.0012381792195339148f;	
+								pr = (float) (16 + Math.log(pr));
+								titleField.setBoost(pr);
+								keywordField.setBoost(pr);
+								contentField.setBoost(pr);
+								linkField.setBoost(pr);
+								document.add(pathField);
+								document.add(titleField);
+								document.add(keywordField);
+								document.add(contentField);
+								document.add(linkField);
+								indexWriter.addDocument(document);
+								cnt += 1;
+							} catch(Exception e)  {
+								System.out.println("Error when doing file:"+file.getPath());
+								e.printStackTrace();
+							}
+						} else if(file.getName().endsWith("docx") | file.getName().endsWith("xls") | file.getName().endsWith("xlsx")) {
+							System.out.println(file.getPath());
+							System.out.println("Unhandled!");
+							System.exit(0);
+						}
+						
+					} finally {
+						fis.close();
+					}
 				}
-	        	Document doc = new Document();
-	        	if (name.endsWith(".html") || name.endsWith("htm"))
-	        		parseHtml(page, doc);
-	        	if (name.endsWith(".pdf"))
-	        		parsePdf(page, doc);
-	        	if (name.endsWith(".doc"))
-	        		parseDoc(page, doc);
-	        	if (name.endsWith(".docx"))
-	        		parseDocx(page, doc);
-	    
-	        	Field rankField = new FloatDocValuesField("pagerank", rank);
-	        	doc.add(rankField);
-	        	Field pathField = new Field("path", name, Field.Store.YES, Field.Index.NO);
-	        	doc.add(pathField);
-	        	
-	        	count += 1;
-	        	if (count % 100 == 0) System.out.println("processed "+count);
-	        	// TODO: 判断是否index成功
-	        	indexWriter.addDocument(doc);
-            }
-	        indexWriter.close();
-	        
-		} catch (Exception e) {
-			// TODO: handle exception
+			}    
+		}catch(Exception e){
 			e.printStackTrace();
-			System.out.println("Can't find the page rank file " + PAGERANK_FILE);
 		}
-		
-		
-		
 	}
+	
+	public void closeWriter(){
+		try{ indexWriter.close();}
+		catch(Exception e)	{ e.printStackTrace();}
+	}
+	
 	public static void main(String[] args) {
-		Indexer indexer = new Indexer();
-		indexer.build_index();
-		/*分词测试
-		IKAnalyzer analyzer = new IKAnalyzer();
-		//new IKAnalyzer(useSmart, useSingle, useItself)
-		TokenStream tStream;
-		try {
-			tStream = analyzer.tokenStream("title", new StringReader("test 林校长今日莅临指导"));
-			tStream.reset();
-			while(tStream.incrementToken()) {
-				String token = tStream.getAttribute(CharTermAttribute.class).toString();
-				System.out.println(token);
-				
-			}
-			tStream.end();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		*/
-		System.out.println("over");
+		Indexer indexer=new Indexer(INDEX_FILE_NAME);
+		final File docDir = new File(PAGE_ROOT_DIR);
+		indexer.indexDocs(docDir);
+		indexer.closeWriter();
+		
+		System.out.println(indexer.cnt);
 	}
-
 }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
+  <servlet>
+    <display-name>Server</display-name>
+    <servlet-name>Server</servlet-name>
+    <servlet-class>Server</servlet-class>
+  </servlet>
+  <servlet>
+    <display-name>AutoComplete</display-name>
+    <servlet-name>AutoComplete</servlet-name>
+    <servlet-class>AutoComplete</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Server</servlet-name>
+    <url-pattern>/servlet/Server</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>AutoComplete</servlet-name>
+    <url-pattern>/servlet/AutoComplete</url-pattern>
+  </servlet-mapping>
+</web-app>

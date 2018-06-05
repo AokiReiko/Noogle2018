@@ -1,106 +1,113 @@
-
-
 import java.io.IOException;
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-/**
- * Servlet implementation class Server
- */
-public class Server extends HttpServlet {
-	private static final long serialVersionUID = 1L;
-	//private YourClassName searcher; 
-    /**
-     * Default constructor. 
-     */
-    public Server() {
-        // TODO Auto-generated constructor stub
-    	// searcher = new YourClassName;
-    }
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import com.google.gson.Gson;
+import java.util.*;
+import java.net.URLEncoder;
 
-	/**
-	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
+public class Server extends HttpServlet{
+	// TODO:hard code
+	public static final String INDEX_ABSOLUTE_PATH = "D:\\SE\\SixerSearcher\\forIndex";
+	static final String PAGE_ROOT_DIR = "D:\\tsinghua\\20180518172144\\mirror\\news.tsinghua.edu.cn";
+	
+	public static final int PAGE_RESULT=10;
+	private Searcher search = null;
+	public Server(){  
+		super();
+		search=new Searcher(new String(INDEX_ABSOLUTE_PATH + "/index"));
+	}
+	
+	public ScoreDoc[] showList(ScoreDoc[] results, int page){
+		if(results == null || results.length < (page - 1) * PAGE_RESULT){
+			return null;
+		}
+		int start = Math.max((page - 1) * PAGE_RESULT, 0);
+		int docnum = Math.min(results.length - start, PAGE_RESULT);
+		ScoreDoc[] ret = new ScoreDoc[docnum];
+		for(int i = 0; i < docnum; i++){   
+			ret[i] = results[start + i];
+		}
+		return ret;
+	}
+	
+	public void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
 		response.setContentType("text/html;charset=utf-8");
 		request.setCharacterEncoding("utf-8");
-		String queryString=request.getParameter("query");
-		String pageString=request.getParameter("page");
-		int currentPage = 1;
-		int pageNum = 10;
-		System.out.println("test");
-		if (pageString != null && !pageString.isEmpty())
-			currentPage = Integer.parseInt(pageString);
-		if(queryString.length() == 0){
-			System.out.println("null query.ddd");
-			response.sendRedirect("/search_engine/search.jsp");
-			//request.getRequestDispatcher("/Image.jsp").forward(request, response);
-		}else{
-			/*System.out.println(URLDecoder.decode(queryString,"utf-8"));
-			System.out.println(URLDecoder.decode(queryString,"gb2312"));
-			String[] tags=null;
-			String[] paths=null;
-			//TopDocs results=search.searchQuery(queryString, "abstract", 100);
-			ScoreDoc [] results=search.searchMultiTermQuery(queryString, "abstract", 100);
-			if (results != null) {
-				ScoreDoc[] hits = showList(results, page);
-				if (hits != null) {
-					tags = new String[hits.length];
-					paths = new String[hits.length];
-					for (int i = 0; i < hits.length && i < PAGE_RESULT; i++) {
-						Document doc = search.getDoc(hits[i].doc);
-						System.out.println("doc=" + hits[i].doc + " score="
-								+ hits[i].score + " picPath= "
-								+ doc.get("picPath")+ " tag= "+doc.get("abstract"));
-						tags[i] = doc.get("abstract");
-						paths[i] = picDir + doc.get("picPath");
-					}
-
-				} else {
-					System.out.println("page null");
-				}
-			}else{
-				System.out.println("result null");
-			}
-			*/
-			String [] paths = null;
-			paths = new String[1];
-			paths[0] = "news.tsinghua/test.link";
-			String [] titles = null;
-			titles = new String[1];
-			titles[0] = queryString;
-			String [] descriptions = null;
-			descriptions = new String[1];
-			descriptions[0] = "test.link";
-			
-			
-			
-			System.out.println(queryString+4);
-			request.setAttribute("currentPage", currentPage);
-			request.setAttribute("currentQuery", queryString);
-			request.setAttribute("pageNum", pageNum);
-			//request.setAttribute("imgTags", tags);
-			
-			
-			request.setAttribute("paths", paths);
-			request.setAttribute("titles", titles);
-			request.setAttribute("descriptions", descriptions);
-			request.setAttribute("suggestions", descriptions);
-			
-			request.getRequestDispatcher("//show.jsp").forward(request,
-					response);
+		
+		String queryString = request.getParameter("query");
+		String pageString = request.getParameter("page");
+		
+		if(queryString == null || queryString.replace(" ", "").length() == 0) {
+			response.sendRedirect("/SixerSearcher/search.jsp");
+			return;
 		}
+		
+		int page = 1;
+		if(pageString!=null){
+			page=Integer.parseInt(pageString);
+		}
+		
+		TopDocs results = search.searchQuery(queryString, 100);
+		String[] paths = null;
+		String[] titles = null;
+		String[] descriptions = null;
+		
+		if (results != null) {
+			ScoreDoc[] hits = showList(results.scoreDocs, page);
+			
+			paths = new String[hits.length];
+			titles = new String[hits.length];
+			descriptions = new String[hits.length];
+			for (int i = 0; i < hits.length && i < PAGE_RESULT; i++) {
+				paths[i] = "news.tsinghua.edu.cn" + search.getDoc(hits[i].doc).get("path").replace(PAGE_ROOT_DIR, "");
+				System.out.println(paths[i]);
+				titles[i] = search.getDecoratedTitle(hits[i].doc) ;
+				descriptions[i] = search.getDecoratedDescription(hits[i].doc);
+			}  
+			
+		}else{
+			System.out.println("result null");
+		}
+		ArrayList<String> a1 = search.getCompletion(queryString);
+		ArrayList<String> b1 = search.getRelateRecommend(queryString);
+		
+		request.setAttribute("currentQuery",queryString);
+		request.setAttribute("currentPage", page);
+		request.setAttribute("paths", paths);
+		request.setAttribute("titles", titles);
+		request.setAttribute("descriptions", descriptions);
+		
+		String [] autocomplete = (String[])a1.toArray(new String[a1.size()]);
+		String [] suggestions = (String[])b1.toArray(new String[b1.size()]);
+				
+		request.setAttribute("autocomplete", autocomplete);
+		request.setAttribute("suggestions", suggestions);
+		
+		request.getRequestDispatcher("/results.jsp").forward(request,response); 
+		
 	}
-
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		doGet(request, response);
+	
+	public void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		boolean ajax = "XMLHttpRequest".equals(request.getHeader("X-Requested-With"));
+	    if (ajax) {
+			String word = request.getParameter("word");
+			System.out.println(word);
+			
+			List<String> completeList = search.getCompletion(word);
+		    String json = new Gson().toJson(completeList);
+		    response.setContentType("application/json");
+		    response.setCharacterEncoding("UTF-8");
+		    response.getWriter().write(json);
+	    }
+	    else {
+	    	System.out.print("NOT AJAX\n");
+	    }
+	    //this.doGet(request, response);
 	}
-
 }
