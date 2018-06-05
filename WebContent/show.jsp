@@ -111,6 +111,20 @@ String [] autocomplete = (String[]) request.getAttribute("autocomplete");
 	</ul>
 	</div>
 	</div>
+	<div class="span4">
+	<table class="table">
+	<%if(suggestions!=null && suggestions.length>0){
+	  		%><tr><td> <h4 class = "text-success">相关词汇：</h4><h5 > <%
+		  	for(int i=0; i < suggestions.length;i++){ %>
+		  		<a  href="/Searcher/servlet/Server?query=<%= suggestions[i] %>&Submit=Search">
+		  		<%= suggestions[i] %> 
+		  		</a>
+	  			<br/>
+		  	<% }
+	  		%></h5></td></tr> <%
+	  	}%>
+	  </table>
+	</div>
   </div>
 </div>
 
